@@ -1,0 +1,244 @@
+-- OoceanLib | Fluent-style Roblox UI Library (Delta Safe)
+
+local Ooceanlib = {}
+local UIS = game:GetService("UserInputService")
+
+local Theme = {
+    Main = Color3.fromRGB(255,255,255),
+    Sidebar = Color3.fromRGB(235,245,255),
+    Accent = Color3.fromRGB(0,170,255),
+    Item = Color3.fromRGB(245,250,255),
+    Text = Color3.fromRGB(30,30,30)
+}
+
+-- Drag
+local function Drag(frame)
+    local dragging, startPos, startInput
+    frame.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            startInput = i.Position
+            startPos = frame.Position
+        end
+    end)
+    UIS.InputChanged:Connect(function(i)
+        if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = i.Position - startInput
+            frame.Position = UDim2.new(
+                startPos.X.Scale, startPos.X.Offset + delta.X,
+                startPos.Y.Scale, startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+    UIS.InputEnded:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+end
+
+function Lib:CreateWindow(title)
+    local Gui = Instance.new("ScreenGui", game.CoreGui)
+    Gui.Name = "OoceanHub"
+
+    local Main = Instance.new("Frame", Gui)
+    Main.Size = UDim2.new(0,720,0,480)
+    Main.Position = UDim2.new(0.5,-360,0.5,-240)
+    Main.BackgroundColor3 = Theme.Main
+    Instance.new("UICorner", Main).CornerRadius = UDim.new(0,14)
+    Drag(Main)
+
+    local Top = Instance.new("Frame", Main)
+    Top.Size = UDim2.new(1,0,0,50)
+    Top.BackgroundColor3 = Theme.Accent
+    Instance.new("UICorner", Top).CornerRadius = UDim.new(0,14)
+
+    local Title = Instance.new("TextLabel", Top)
+    Title.Text = title or "Oocean Hub"
+    Title.Size = UDim2.new(1,-60,1,0)
+    Title.Position = UDim2.new(0,15,0,0)
+    Title.BackgroundTransparency = 1
+    Title.Font = Enum.Font.GothamBold
+    Title.TextSize = 22
+    Title.TextColor3 = Color3.new(1,1,1)
+    Title.TextXAlignment = Left
+
+    local Min = Instance.new("TextButton", Top)
+    Min.Size = UDim2.new(0,36,0,30)
+    Min.Position = UDim2.new(1,-46,0.5,-15)
+    Min.Text = "-"
+    Min.Font = Enum.Font.GothamBold
+    Min.TextSize = 22
+    Min.TextColor3 = Color3.new(1,1,1)
+    Min.BackgroundColor3 = Color3.fromRGB(0,140,255)
+    Instance.new("UICorner", Min).CornerRadius = UDim.new(0,8)
+
+    local Body = Instance.new("Frame", Main)
+    Body.Position = UDim2.new(0,0,0,50)
+    Body.Size = UDim2.new(1,0,1,-50)
+    Body.BackgroundTransparency = 1
+
+    local Sidebar = Instance.new("Frame", Body)
+    Sidebar.Size = UDim2.new(0,170,1,0)
+    Sidebar.BackgroundColor3 = Theme.Sidebar
+    Instance.new("UICorner", Sidebar).CornerRadius = UDim.new(0,12)
+
+    local SideLayout = Instance.new("UIListLayout", Sidebar)
+    SideLayout.Padding = UDim.new(0,8)
+    SideLayout.HorizontalAlignment = Center
+
+    local Content = Instance.new("Frame", Body)
+    Content.Position = UDim2.new(0,180,0,10)
+    Content.Size = UDim2.new(1,-190,1,-20)
+    Content.BackgroundTransparency = 1
+
+    Min.MouseButton1Click:Connect(function()
+        Body.Visible = not Body.Visible
+    end)
+
+    local Tabs = {}
+
+    function Tabs:CreateTab(name)
+        local TabBtn = Instance.new("TextButton", Sidebar)
+        TabBtn.Size = UDim2.new(1,-20,0,40)
+        TabBtn.Text = name
+        TabBtn.Font = Enum.Font.Gotham
+        TabBtn.TextSize = 15
+        TabBtn.TextColor3 = Theme.Text
+        TabBtn.BackgroundColor3 = Theme.Item
+        Instance.new("UICorner", TabBtn).CornerRadius = UDim.new(0,10)
+
+        local Page = Instance.new("ScrollingFrame", Content)
+        Page.Size = UDim2.new(1,0,1,0)
+        Page.BackgroundTransparency = 1
+        Page.ScrollBarImageTransparency = 0.4
+        Page.AutomaticCanvasSize = Enum.AutomaticSize.Y
+        Page.Visible = false
+
+        local Layout = Instance.new("UIListLayout", Page)
+        Layout.Padding = UDim.new(0,10)
+
+        TabBtn.MouseButton1Click:Connect(function()
+            for _,v in pairs(Content:GetChildren()) do
+                if v:IsA("ScrollingFrame") then v.Visible = false end
+            end
+            Page.Visible = true
+        end)
+
+        local Tab = {}
+
+        -- Button
+        function Tab:CreateButton(text, cb)
+            local B = Instance.new("TextButton", Page)
+            B.Size = UDim2.new(1,-10,0,45)
+            B.Text = text
+            B.Font = Enum.Font.Gotham
+            B.TextSize = 16
+            B.TextColor3 = Theme.Text
+            B.BackgroundColor3 = Theme.Item
+            Instance.new("UICorner", B).CornerRadius = UDim.new(0,10)
+            B.MouseButton1Click:Connect(function() pcall(cb) end)
+        end
+
+        -- Toggle
+        function Tab:CreateToggle(text, def, cb)
+            local F = Instance.new("TextButton", Page)
+            F.Size = UDim2.new(1,-10,0,45)
+            F.Text = text
+            F.Font = Enum.Font.Gotham
+            F.TextSize = 15
+            F.TextColor3 = Theme.Text
+            F.BackgroundColor3 = def and Theme.Accent or Theme.Item
+            Instance.new("UICorner", F).CornerRadius = UDim.new(0,10)
+            local state = def
+            F.MouseButton1Click:Connect(function()
+                state = not state
+                F.BackgroundColor3 = state and Theme.Accent or Theme.Item
+                pcall(cb, state)
+            end)
+        end
+
+        -- Slider
+        function Tab:CreateSlider(text,min,max,def,cb)
+            local S = Instance.new("Frame", Page)
+            S.Size = UDim2.new(1,-10,0,60)
+            S.BackgroundColor3 = Theme.Item
+            Instance.new("UICorner", S).CornerRadius = UDim.new(0,10)
+
+            local L = Instance.new("TextLabel", S)
+            L.Text = text..": "..def
+            L.Size = UDim2.new(1,-20,0,25)
+            L.Position = UDim2.new(0,10,0,5)
+            L.BackgroundTransparency = 1
+            L.Font = Enum.Font.Gotham
+            L.TextSize = 14
+            L.TextXAlignment = Left
+            L.TextColor3 = Theme.Text
+
+            local Bar = Instance.new("Frame", S)
+            Bar.Size = UDim2.new(1,-20,0,8)
+            Bar.Position = UDim2.new(0,10,0,40)
+            Bar.BackgroundColor3 = Color3.fromRGB(200,200,200)
+            Instance.new("UICorner", Bar).CornerRadius = UDim.new(1,0)
+
+            local Fill = Instance.new("Frame", Bar)
+            Fill.Size = UDim2.new((def-min)/(max-min),0,1,0)
+            Fill.BackgroundColor3 = Theme.Accent
+            Instance.new("UICorner", Fill).CornerRadius = UDim.new(1,0)
+
+            local drag = false
+            Bar.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 then drag=true end end)
+            UIS.InputEnded:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 then drag=false end end)
+            UIS.InputChanged:Connect(function(i)
+                if drag then
+                    local pct = math.clamp((i.Position.X-Bar.AbsolutePosition.X)/Bar.AbsoluteSize.X,0,1)
+                    local val = math.floor(min+(max-min)*pct)
+                    Fill.Size = UDim2.new(pct,0,1,0)
+                    L.Text = text..": "..val
+                    pcall(cb,val)
+                end
+            end)
+        end
+
+        -- Dropdown
+        function Tab:CreateDropdown(text,list,cb)
+            local D = Instance.new("TextButton", Page)
+            D.Size = UDim2.new(1,-10,0,45)
+            D.Text = text
+            D.Font = Enum.Font.Gotham
+            D.TextSize = 15
+            D.TextColor3 = Theme.Text
+            D.BackgroundColor3 = Theme.Item
+            Instance.new("UICorner", D).CornerRadius = UDim.new(0,10)
+
+            D.MouseButton1Click:Connect(function()
+                local v = list[math.random(#list)]
+                D.Text = text..": "..v
+                pcall(cb,v)
+            end)
+        end
+
+        -- Color Picker (test)
+        function Tab:CreateColorPicker(text,cb)
+            local C = Instance.new("TextButton", Page)
+            C.Size = UDim2.new(1,-10,0,45)
+            C.Text = text
+            C.Font = Enum.Font.Gotham
+            C.TextSize = 15
+            C.TextColor3 = Theme.Text
+            C.BackgroundColor3 = Theme.Item
+            Instance.new("UICorner", C).CornerRadius = UDim.new(0,10)
+            C.MouseButton1Click:Connect(function()
+                local col = Color3.fromHSV(math.random(),1,1)
+                C.BackgroundColor3 = col
+                pcall(cb,col)
+            end)
+        end
+
+        return Tab
+    end
+
+    return Tabs
+end
+
+return Ooceanlib
